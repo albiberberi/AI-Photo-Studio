@@ -149,6 +149,23 @@ export default function PhotoUploadInterface() {
     fileInputRef.current?.click();
   };
 
+  const handleSubmit = () => {
+    if (!uploadedFile) {
+      alert('Please upload an image first');
+      return;
+    }
+    
+    // Handle form submission here
+    console.log('Submitting:', {
+      file: uploadedFile,
+      thoughts: thoughts
+    });
+    
+    // You can add your submission logic here
+    // For example, sending to an API endpoint
+    alert('Form submitted successfully!');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-200 via-cyan-200 to-blue-200 flex flex-col items-center justify-center p-6">
       {/* Logo */}
@@ -253,6 +270,19 @@ export default function PhotoUploadInterface() {
             🎤 Listening... Speak clearly into your microphone
           </p>
         )}
+
+        {/* Submit Button */}
+        <button
+          onClick={handleSubmit}
+          disabled={!uploadedFile}
+          className={`w-full mt-6 py-4 rounded-lg text-xl font-medium transition-all duration-200 shadow-md hover:shadow-lg ${
+            uploadedFile
+              ? 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          Submit
+        </button>
       </div>
     </div>
   );
