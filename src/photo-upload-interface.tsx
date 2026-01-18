@@ -3,12 +3,22 @@ import type { ChangeEvent, DragEvent } from 'react';
 import { Upload, Mic, MicOff } from 'lucide-react';
 import backgroundImage from './assets/bcg.png';
 import logoimg from './assets/Logo.png'
+import HistorySidebar, { type HistoryItem } from './history-sidebar';
 
 interface PhotoUploadInterfaceProps {
   onSubmit: (images: string[], description: string) => void;
+  history: HistoryItem[];
+  onHistorySelect: (item: HistoryItem) => void;
+  onClearHistory: () => void;
 }
 
-export default function PhotoUploadInterface({ onSubmit }: PhotoUploadInterfaceProps) {
+export default function PhotoUploadInterface({ 
+  onSubmit, 
+  history, 
+  onHistorySelect, 
+  onClearHistory 
+}: PhotoUploadInterfaceProps) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [thoughts, setThoughts] = useState('');
@@ -172,145 +182,162 @@ export default function PhotoUploadInterface({ onSubmit }: PhotoUploadInterfaceP
 
   return (
     <div 
-      className="min-h-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-6"
-      style={{ backgroundImage: `url(${backgroundImage})` }}
+      className="h-screen w-screen bg-cover bg-center bg-no-repeat flex overflow-hidden"
+      style={{ 
+        backgroundImage: `url(${backgroundImage})`,
+        width: '133.333333vw',
+        height: '133.333333vh',
+        zoom: '0.75'
+      }}
     >
-      {/* Logo */}
-      <div className="absolute top-6 left-6">
-        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
-          <img src={logoimg} alt="Logo" className="w-full h-full object-cover" />
-        </div>
-      </div>
-
-      {/* Main Container */}
-      <div className="w-full max-w-3xl">
-        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-          Upload the product
-        </h1>
-
-        {/* Upload Area */}
-        <div
-          className={`bg-white rounded-lg border-4 border-dashed transition-all duration-200 ${
-            isDragging ? 'border-teal-500 bg-teal-50' : 'border-gray-300'
-          } p-16 mb-6`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          {!previewUrls.length ? (
-            <div className="flex flex-col items-center justify-center">
-              <Upload className="w-16 h-16 mb-6 text-gray-700" strokeWidth={2} />
-              <p className="text-2xl font-medium text-gray-800 mb-4">
-                Drag and Drop images here
-              </p>
-              <p className="text-xl text-gray-600 mb-6">or</p>
-              <button
-                onClick={handleSelectClick}
-                className="bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-12 py-4 rounded-lg text-xl font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                Select files
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-              />
+      <HistorySidebar
+        items={history}
+        onSelect={onHistorySelect}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        onClear={onClearHistory}
+      />
+      
+      <div className="flex-1 relative w-full h-full overflow-y-auto">
+        <div className="min-h-full flex flex-col items-center justify-center p-6 relative">
+          {/* Logo */}
+          <div className="absolute top-6 left-6">
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+              <img src={logoimg} alt="Logo" className="w-full h-full object-cover" />
             </div>
-          ) : (
-            <div className="flex flex-col items-center w-full">
-              <div className="grid grid-cols-2 gap-4 w-full mb-6">
-                {previewUrls.map((url, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={url}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg shadow-md"
-                    />
+          </div>
+
+          {/* Main Container */}
+          <div className="w-full max-w-3xl">
+            <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
+              Upload the product
+            </h1>
+
+            {/* Upload Area */}
+            <div
+              className={`bg-white rounded-lg border-4 border-dashed transition-all duration-200 ${
+                isDragging ? 'border-teal-500 bg-teal-50' : 'border-gray-300'
+              } p-16 mb-6`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {!previewUrls.length ? (
+                <div className="flex flex-col items-center justify-center">
+                  <Upload className="w-16 h-16 mb-6 text-gray-700" strokeWidth={2} />
+                  <p className="text-2xl font-medium text-gray-800 mb-4">
+                    Drag and Drop images here
+                  </p>
+                  <p className="text-xl text-gray-600 mb-6">or</p>
+                  <button
+                    onClick={handleSelectClick}
+                    className="bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-12 py-4 rounded-lg text-xl font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    Select files
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center w-full">
+                  <div className="grid grid-cols-2 gap-4 w-full mb-6">
+                    {previewUrls.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-48 object-cover rounded-lg shadow-md"
+                        />
+                        <button
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                    
                     <button
-                      onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={handleSelectClick}
+                      className="h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-teal-500 hover:text-teal-500 transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <Upload className="w-8 h-8 mb-2" />
+                      <span>Add another</span>
                     </button>
                   </div>
-                ))}
-                
-                <button
-                  onClick={handleSelectClick}
-                  className="h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-teal-500 hover:text-teal-500 transition-colors"
-                >
-                  <Upload className="w-8 h-8 mb-2" />
-                  <span>Add another</span>
-                </button>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-              />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Thoughts Input */}
-        <div className="flex gap-4 mb-6">
-          <div className="flex-1 relative">
-            <textarea
-              value={thoughts + (interimText ? ' ' + interimText : '')}
-              onChange={(e) => setThoughts(e.target.value)}
-              placeholder="Describe your thoughts..."
-              className="w-full bg-white rounded-lg px-6 py-4 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"
-              rows={3}
-            />
-            {interimText && (
-              <span className="absolute bottom-6 right-6 text-xs text-gray-400 italic">
-                (speaking...)
-              </span>
+            {/* Thoughts Input */}
+            <div className="flex gap-4 mb-6">
+              <div className="flex-1 relative">
+                <textarea
+                  value={thoughts + (interimText ? ' ' + interimText : '')}
+                  onChange={(e) => setThoughts(e.target.value)}
+                  placeholder="Describe your thoughts..."
+                  className="w-full bg-white rounded-lg px-6 py-4 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"
+                  rows={3}
+                />
+                {interimText && (
+                  <span className="absolute bottom-6 right-6 text-xs text-gray-400 italic">
+                    (speaking...)
+                  </span>
+                )}
+              </div>
+              <button 
+                onClick={toggleListening}
+                className={`rounded-full w-16 h-16 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 self-end ${
+                  isListening 
+                    ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
+                    : 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500'
+                }`}
+                title={isListening ? 'Stop recording' : 'Start recording'}
+              >
+                {isListening ? (
+                  <MicOff className="w-8 h-8 text-white" />
+                ) : (
+                  <Mic className="w-8 h-8 text-white" />
+                )}
+              </button>
+            </div>
+            
+            {isListening && (
+              <p className="text-center mb-4 text-gray-700 text-sm">
+                🎤 Listening... Speak clearly into your microphone
+              </p>
             )}
+
+            {/* Submit Button */}
+            <button
+              onClick={handleSubmit}
+              disabled={previewUrls.length === 0 || !thoughts.trim()}
+              className={`w-full py-4 rounded-lg text-xl font-medium shadow-lg transition-all duration-200 ${
+                previewUrls.length > 0 && thoughts.trim()
+                  ? 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white hover:shadow-xl'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Continue to Editor
+            </button>
           </div>
-          <button 
-            onClick={toggleListening}
-            className={`rounded-full w-16 h-16 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 self-end ${
-              isListening 
-                ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
-                : 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500'
-            }`}
-            title={isListening ? 'Stop recording' : 'Start recording'}
-          >
-            {isListening ? (
-              <MicOff className="w-8 h-8 text-white" />
-            ) : (
-              <Mic className="w-8 h-8 text-white" />
-            )}
-          </button>
         </div>
-        
-        {isListening && (
-          <p className="text-center mb-4 text-gray-700 text-sm">
-            🎤 Listening... Speak clearly into your microphone
-          </p>
-        )}
-
-        {/* Submit Button */}
-        <button
-          onClick={handleSubmit}
-          disabled={previewUrls.length === 0 || !thoughts.trim()}
-          className={`w-full py-4 rounded-lg text-xl font-medium shadow-lg transition-all duration-200 ${
-            previewUrls.length > 0 && thoughts.trim()
-              ? 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white hover:shadow-xl'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
-        >
-          Continue to Editor
-        </button>
       </div>
     </div>
   );

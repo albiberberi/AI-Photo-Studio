@@ -4,18 +4,39 @@ import { ChevronDown, Download, ArrowLeft, Wallpaper, Loader2 } from 'lucide-rea
 import { generateProductImage, removeBackground } from './fal-service';
 import backgroundImage from './assets/bcg.png';
 import logoimg from './assets/Logo.png';
+import HistorySidebar, { type HistoryItem } from './history-sidebar';
 
 interface MainUIProps {
   uploadedImages?: string[];
   description?: string;
   onBack?: () => void;
+  // History Props
+  history: HistoryItem[];
+  addToHistory: (item: Omit<HistoryItem, 'id' | 'timestamp'>) => void;
+  onClearHistory: () => void;
+  // Restoration Props
+  initialSettings?: HistoryItem['settings'];
 }
 
-export default function MainUI({ uploadedImages = [], description, onBack }: MainUIProps) {
-  const [size, setSize] = useState<"square_hd" | "square" | "portrait_4_3" | "portrait_16_9" | "landscape_4_3" | "landscape_16_9">('landscape_4_3');
-  const [sharpness, setSharpness] = useState('Normal');
-  const [quality, setQuality] = useState('High');
-  const [orientation, setOrientation] = useState('Landscape');
+export default function MainUI({ 
+  uploadedImages = [], 
+  description, 
+  onBack,
+  history,
+  addToHistory,
+  onClearHistory,
+  initialSettings
+}: MainUIProps) {
+  const [size, setSize] = useState<"square_hd" | "square" | "portrait_4_3" | "portrait_16_9" | "landscape_4_3" | "landscape_16_9">(
+    initialSettings?.size || 'landscape_4_3'
+  );
+  const [sharpness, setSharpness] = useState(initialSettings?.sharpness || 'Normal');
+  const [quality, setQuality] = useState(initialSettings?.quality || 'High');
+  const [orientation, setOrientation] = useState(initialSettings?.orientation || 'Landscape');
+  // New Lighting state
+  const [lighting, setLighting] = useState(initialSettings?.lighting || 'Studio');
+  const [model, setModel] = useState(initialSettings?.model || 'fal-ai/gemini-25-flash-image/edit');
+  
   const [thoughts, setThoughts] = useState(description || '');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -23,6 +44,11 @@ export default function MainUI({ uploadedImages = [], description, onBack }: Mai
   const [error, setError] = useState<string | null>(null);
   
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Local addToHistory removed in favor of prop
+
 
   const sizeOptions = [
     { label: 'Square HD', value: 'square_hd' as const },
@@ -32,9 +58,16 @@ export default function MainUI({ uploadedImages = [], description, onBack }: Mai
     { label: 'Landscape 4:3', value: 'landscape_4_3' as const },
     { label: 'Landscape 16:9', value: 'landscape_16_9' as const },
   ];
+  const modelOptions = [
+    { label: 'Gemini 2.5 Flash', value: 'fal-ai/gemini-25-flash-image/edit' },
+    { label: 'Flux 2 Pro', value: 'fal-ai/flux-2-pro/edit' },
+    { label: 'Nano Banana Pro', value: 'fal-ai/nano-banana-pro/edit' },
+  ];
   const sharpnessOptions = ['Soft', 'Normal', 'Sharp', 'Very Sharp'];
   const qualityOptions = ['Low', 'Medium', 'High', 'Ultra'];
   const orientationOptions = ['Portrait', 'Landscape', 'Square'];
+  // New Lighting Options
+  const lightingOptions = ['Natural', 'Studio', 'Cinematic', 'Dramatic', 'Ambient', 'Soft'];
 
   const toggleDropdown = (dropdown: string) => {
     setOpenDropdown(openDropdown === dropdown ? null : dropdown);
@@ -46,7 +79,8 @@ export default function MainUI({ uploadedImages = [], description, onBack }: Mai
     console.log('Thoughts:', thoughts);
     console.log('Size:', size);
     console.log('API Key:', import.meta.env.VITE_FAL_KEY ? 'Found' : 'MISSING!');
-
+      console.log('API Key:', import.meta.env.VITE_FAL_KEY ? 'Found' : 'MISSING!');
+    
     if (uploadedImages.length === 0 || !thoughts.trim()) {
       alert('Please provide images and description');
       return;
@@ -62,12 +96,28 @@ export default function MainUI({ uploadedImages = [], description, onBack }: Mai
         prompt: thoughts,
         size: size,
         quality: quality.toLowerCase(),
+        sharpness: sharpness.toLowerCase(),
+        orientation: orientation.toLowerCase(),
+        lighting: lighting.toLowerCase(),
+        model: model,
       });
 
       console.log('API Response:', result);
 
       if (result.success) {
         setGeneratedImage(result.imageUrl);
+        addToHistory({
+          imageUrl: result.imageUrl,
+          prompt: thoughts,
+          settings: {
+            size,
+            sharpness,
+            quality,
+            orientation,
+            lighting,
+            model,
+          }
+        });
         console.log('Generated image URL:', result.imageUrl);
       } else {
         setError(result.error || 'Failed to generate image');
@@ -100,6 +150,17 @@ export default function MainUI({ uploadedImages = [], description, onBack }: Mai
 
       if (result.success) {
         setGeneratedImage(result.imageUrl);
+        addToHistory({
+          imageUrl: result.imageUrl, 
+          prompt: thoughts,
+          settings: {
+            size,
+            sharpness,
+            quality,
+            orientation,
+            model,
+          }
+        });
         console.log('Background removed successfully');
       } else {
         setError(result.error || 'Failed to remove background');
@@ -151,271 +212,355 @@ export default function MainUI({ uploadedImages = [], description, onBack }: Mai
 
   return (
     <div 
-      className="min-h-screen bg-cover bg-center bg-no-repeat flex flex-col p-6"
-      style={{ backgroundImage: `url(${backgroundImage})` }}
+      className="h-screen w-screen bg-cover bg-center bg-no-repeat flex overflow-hidden"
+      style={{ 
+        backgroundImage: `url(${backgroundImage})`,
+        width: '133.333333vw',
+        height: '133.333333vh',
+        zoom: '0.75'
+      }}
     >
-      {/* Logo */}
-      <div className="absolute top-6 left-6">
-        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
-          <img src={logoimg} alt="Logo" className="w-full h-full object-cover" />
+      <HistorySidebar
+        items={history}
+        onSelect={(item) => {
+          setGeneratedImage(item.imageUrl);
+          setThoughts(item.prompt);
+          setSize(item.settings.size);
+          setSharpness(item.settings.sharpness);
+          setQuality(item.settings.quality);
+          setOrientation(item.settings.orientation);
+          setLighting(item.settings.lighting || 'Studio');
+          setModel(item.settings.model || 'fal-ai/gemini-25-flash-image/edit');
+        }}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        onClear={onClearHistory}
+      />
+
+      {/* Main Content Area - wrapped to handle sidebar pushing */}
+      <div className="flex-1 flex flex-col relative h-full overflow-y-auto w-full p-6 transition-all duration-300">
+        
+        {/* Logo */}
+        <div className="absolute top-6 left-6 z-10">
+          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+            <img src={logoimg} alt="Logo" className="w-full h-full object-cover" />
+          </div>
         </div>
-      </div>
 
-      {/* Back Button */}
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="absolute top-6 right-6 bg-white hover:bg-gray-100 text-gray-700 px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2">
-          <ArrowLeft className="w-5 h-5" />
-          <span className="font-medium">Back to Upload</span>
-        </button>
-      )}
+        {/* Back Button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="absolute top-6 right-6 bg-white hover:bg-gray-100 text-gray-700 px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 z-10">
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium">Back to Upload</span>
+          </button>
+        )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex gap-6 mt-24 max-w-7xl mx-auto w-full">
-        {/* Left Side - Image Display */}
-        <div className="flex-1 flex flex-col gap-4">
-          {/* Image Container */}
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden flex-1 flex items-center justify-center min-h-[500px] relative">
-            {(isGenerating || isRemovingBg) && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-10">
-                <Loader2 className="w-16 h-16 text-white animate-spin mb-4" />
-                <p className="text-white text-xl font-medium">
-                  {isGenerating ? 'Generating your image...' : 'Removing background...'}
-                </p>
+        {/* Main Content Components - Adjusted margin to not overlap with logo/header if needed */}
+        <div className="flex-1 flex gap-6 mt-24 max-w-7xl mx-auto w-full">
+          {/* Left Side - Image Display */}
+          <div className="flex-1 flex flex-col gap-4">
+            {/* Image Container */}
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden flex-1 flex items-center justify-center min-h-[500px] relative">
+              {(isGenerating || isRemovingBg) && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-10">
+                  <Loader2 className="w-16 h-16 text-white animate-spin mb-4" />
+                  <p className="text-white text-xl font-medium">
+                    {isGenerating ? 'Generating your image...' : 'Removing background...'}
+                  </p>
+                </div>
+              )}
+              {generatedImage ? (
+                <img 
+                  src={generatedImage} 
+                  alt="Generated Product" 
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : uploadedImages.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2 p-4 w-full h-full overflow-auto">
+                  {uploadedImages.map((img, i) => (
+                    <img 
+                      key={i}
+                      src={img} 
+                      alt={`Uploaded ${i}`} 
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-gray-400 text-xl">
+                  No images uploaded
+                </div>
+              )}
+            </div>
+
+            {/* Description Input with Generate Button */}
+            <div className="flex gap-4 items-end">
+              <textarea
+                value={thoughts}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setThoughts(e.target.value)}
+                placeholder="Describe what you want to create or enhance..."
+                className="flex-1 bg-white rounded-lg px-6 py-4 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none shadow-md"
+                rows={3}
+                disabled={isGenerating}
+              />
+              <button 
+                onClick={handleGenerate}
+                disabled={isGenerating || !thoughts.trim()}
+                className={`rounded-full w-16 h-16 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 ${
+                  isGenerating || !thoughts.trim()
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500'
+                }`}
+                title="Generate image from description"
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                ) : (
+                  <svg
+                    className="w-10 h-10 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                ❌ {error}
               </div>
             )}
-            {generatedImage ? (
-              <img 
-                src={generatedImage} 
-                alt="Generated Product" 
-                className="max-w-full max-h-full object-contain"
-              />
-            ) : uploadedImages.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2 p-4 w-full h-full overflow-auto">
-                {uploadedImages.map((img, i) => (
-                  <img 
-                    key={i}
-                    src={img} 
-                    alt={`Uploaded ${i}`} 
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-gray-400 text-xl">
-                No images uploaded
+
+            {generatedImage && !error && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                ✨ Image generated successfully! You can download it now.
               </div>
             )}
           </div>
 
-          {/* Description Input with Generate Button */}
-          <div className="flex gap-4 items-end">
-            <textarea
-              value={thoughts}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setThoughts(e.target.value)}
-              placeholder="Describe what you want to create or enhance..."
-              className="flex-1 bg-white rounded-lg px-6 py-4 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none shadow-md"
-              rows={3}
-              disabled={isGenerating}
-            />
-            <button 
-              onClick={handleGenerate}
-              disabled={isGenerating || !thoughts.trim()}
-              className={`rounded-full w-16 h-16 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 ${
-                isGenerating || !thoughts.trim()
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500'
+          {/* Right Side - Control Panel */}
+          <div className="w-80 flex flex-col gap-4">
+            {/* Model Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => toggleDropdown('model')}
+                className="w-full bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-6 py-4 rounded-2xl text-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between"
+              >
+                <span>{modelOptions.find(o => o.value === model)?.label || 'Model'}</span>
+                <ChevronDown className={`w-6 h-6 transition-transform ${openDropdown === 'model' ? 'rotate-180' : ''}`} />
+              </button>
+              {openDropdown === 'model' && (
+                <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-20">
+                  {modelOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setModel(option.value);
+                        setOpenDropdown(null);
+                      }}
+                      className={`w-full px-6 py-3 text-left hover:bg-teal-50 transition-colors ${
+                        model === option.value ? 'bg-teal-100 text-teal-700 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Size Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => toggleDropdown('size')}
+                className="w-full bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-6 py-4 rounded-2xl text-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between"
+              >
+                <span>{sizeOptions.find(o => o.value === size)?.label || 'Size'}</span>
+                <ChevronDown className={`w-6 h-6 transition-transform ${openDropdown === 'size' ? 'rotate-180' : ''}`} />
+              </button>
+              {openDropdown === 'size' && (
+                <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-10">
+                  {sizeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setSize(option.value);
+                        setOpenDropdown(null);
+                      }}
+                      className={`w-full px-6 py-3 text-left hover:bg-teal-50 transition-colors ${
+                        size === option.value ? 'bg-teal-100 text-teal-700 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Sharpness Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => toggleDropdown('sharpness')}
+                className="w-full bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-6 py-4 rounded-2xl text-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between"
+              >
+                <span>{sharpness}</span>
+                <ChevronDown className={`w-6 h-6 transition-transform ${openDropdown === 'sharpness' ? 'rotate-180' : ''}`} />
+              </button>
+              {openDropdown === 'sharpness' && (
+                <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-10">
+                  {sharpnessOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setSharpness(option);
+                        setOpenDropdown(null);
+                      }}
+                      className={`w-full px-6 py-3 text-left hover:bg-teal-50 transition-colors ${
+                        sharpness === option ? 'bg-teal-100 text-teal-700 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Lighting Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => toggleDropdown('lighting')}
+                className="w-full bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-6 py-4 rounded-2xl text-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between"
+              >
+                <span>{lighting}</span>
+                <ChevronDown className={`w-6 h-6 transition-transform ${openDropdown === 'lighting' ? 'rotate-180' : ''}`} />
+              </button>
+              {openDropdown === 'lighting' && (
+                <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-10">
+                  {lightingOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setLighting(option);
+                        setOpenDropdown(null);
+                      }}
+                      className={`w-full px-6 py-3 text-left hover:bg-teal-50 transition-colors ${
+                        lighting === option ? 'bg-teal-100 text-teal-700 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quality Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => toggleDropdown('quality')}
+                className="w-full bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-6 py-4 rounded-2xl text-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between"
+              >
+                <span>{quality}</span>
+                <ChevronDown className={`w-6 h-6 transition-transform ${openDropdown === 'quality' ? 'rotate-180' : ''}`} />
+              </button>
+              {openDropdown === 'quality' && (
+                <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-10">
+                  {qualityOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setQuality(option);
+                        setOpenDropdown(null);
+                      }}
+                      className={`w-full px-6 py-3 text-left hover:bg-teal-50 transition-colors ${
+                        quality === option ? 'bg-teal-100 text-teal-700 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Orientation Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => toggleDropdown('orientation')}
+                className="w-full bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-6 py-4 rounded-2xl text-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between"
+              >
+                <span>{orientation}</span>
+                <ChevronDown className={`w-6 h-6 transition-transform ${openDropdown === 'orientation' ? 'rotate-180' : ''}`} />
+              </button>
+              {openDropdown === 'orientation' && (
+                <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-10">
+                  {orientationOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setOrientation(option);
+                        setOpenDropdown(null);
+                      }}
+                      className={`w-full px-6 py-3 text-left hover:bg-teal-50 transition-colors ${
+                        orientation === option ? 'bg-teal-100 text-teal-700 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Remove Bg Button */}
+            <button
+              onClick={removeBg}
+              disabled={isRemovingBg || !displayImage}
+              className={`w-full px-6 py-4 rounded-2xl text-xl font-medium shadow-lg transition-all duration-200 flex items-center justify-center gap-2 mt-2 ${
+                isRemovingBg || !displayImage
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white hover:shadow-xl'
               }`}
-              title="Generate image from description"
             >
-              {isGenerating ? (
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              {isRemovingBg ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Processing...</span>
+                </>
               ) : (
-                <svg
-                  className="w-10 h-10 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
+                <>
+                  <span>Remove Background</span>
+                  <Wallpaper className="w-5 h-5" />
+                </>
               )}
             </button>
-          </div>
 
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              ❌ {error}
-            </div>
-          )}
-
-          {generatedImage && !error && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-              ✨ Image generated successfully! You can download it now.
-            </div>
-          )}
-        </div>
-
-        {/* Right Side - Control Panel */}
-        <div className="w-80 flex flex-col gap-4">
-          {/* Size Dropdown */}
-          <div className="relative">
+            {/* Download Button */}
             <button
-              onClick={() => toggleDropdown('size')}
-              className="w-full bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-6 py-4 rounded-2xl text-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between"
+              onClick={handleDownload}
+              disabled={!displayImage}
+              className={`w-full px-6 py-4 rounded-2xl text-xl font-medium shadow-lg transition-all duration-200 flex items-center justify-center gap-2 mt-2 ${
+                displayImage
+                  ? 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white hover:shadow-xl'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
             >
-              <span>Size</span>
-              <ChevronDown className={`w-6 h-6 transition-transform ${openDropdown === 'size' ? 'rotate-180' : ''}`} />
+              <span>Download</span>
+              <Download className="w-5 h-5" />
             </button>
-            {openDropdown === 'size' && (
-              <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-10">
-                {sizeOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setSize(option.value);
-                      setOpenDropdown(null);
-                    }}
-                    className={`w-full px-6 py-3 text-left hover:bg-teal-50 transition-colors ${
-                      size === option.value ? 'bg-teal-100 text-teal-700 font-medium' : 'text-gray-700'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
-
-          {/* Sharpness Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => toggleDropdown('sharpness')}
-              className="w-full bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-6 py-4 rounded-2xl text-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between"
-            >
-              <span>Sharpness</span>
-              <ChevronDown className={`w-6 h-6 transition-transform ${openDropdown === 'sharpness' ? 'rotate-180' : ''}`} />
-            </button>
-            {openDropdown === 'sharpness' && (
-              <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-10">
-                {sharpnessOptions.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => {
-                      setSharpness(option);
-                      setOpenDropdown(null);
-                    }}
-                    className={`w-full px-6 py-3 text-left hover:bg-teal-50 transition-colors ${
-                      sharpness === option ? 'bg-teal-100 text-teal-700 font-medium' : 'text-gray-700'
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Quality Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => toggleDropdown('quality')}
-              className="w-full bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-6 py-4 rounded-2xl text-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between"
-            >
-              <span>Quality</span>
-              <ChevronDown className={`w-6 h-6 transition-transform ${openDropdown === 'quality' ? 'rotate-180' : ''}`} />
-            </button>
-            {openDropdown === 'quality' && (
-              <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-10">
-                {qualityOptions.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => {
-                      setQuality(option);
-                      setOpenDropdown(null);
-                    }}
-                    className={`w-full px-6 py-3 text-left hover:bg-teal-50 transition-colors ${
-                      quality === option ? 'bg-teal-100 text-teal-700 font-medium' : 'text-gray-700'
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Orientation Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => toggleDropdown('orientation')}
-              className="w-full bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-6 py-4 rounded-2xl text-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between"
-            >
-              <span>Orientation</span>
-              <ChevronDown className={`w-6 h-6 transition-transform ${openDropdown === 'orientation' ? 'rotate-180' : ''}`} />
-            </button>
-            {openDropdown === 'orientation' && (
-              <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl overflow-hidden z-10">
-                {orientationOptions.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => {
-                      setOrientation(option);
-                      setOpenDropdown(null);
-                    }}
-                    className={`w-full px-6 py-3 text-left hover:bg-teal-50 transition-colors ${
-                      orientation === option ? 'bg-teal-100 text-teal-700 font-medium' : 'text-gray-700'
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* Remove Bg Button */}
-          <button
-            onClick={removeBg}
-            disabled={isRemovingBg || !displayImage}
-            className={`w-full px-6 py-4 rounded-2xl text-xl font-medium shadow-lg transition-all duration-200 flex items-center justify-center gap-2 mt-2 ${
-              isRemovingBg || !displayImage
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white hover:shadow-xl'
-            }`}
-          >
-            {isRemovingBg ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Processing...</span>
-              </>
-            ) : (
-              <>
-                <span>Remove Background</span>
-                <Wallpaper className="w-5 h-5" />
-              </>
-            )}
-          </button>
-
-          {/* Download Button */}
-          <button
-            onClick={handleDownload}
-            disabled={!displayImage}
-            className={`w-full px-6 py-4 rounded-2xl text-xl font-medium shadow-lg transition-all duration-200 flex items-center justify-center gap-2 mt-2 ${
-              displayImage
-                ? 'bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white hover:shadow-xl'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            <span>Download</span>
-            <Download className="w-5 h-5" />
-          </button>
         </div>
       </div>
     </div>
