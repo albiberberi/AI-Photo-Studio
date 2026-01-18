@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { ChevronDown, Download, ArrowLeft, Wallpaper, Loader2 } from 'lucide-react';
 import { generateProductImage, removeBackground } from './fal-service';
-import backgroundImage from './assets/bcg.png';
 import logoimg from './assets/Logo.png';
 import HistorySidebar, { type HistoryItem } from './history-sidebar';
 
@@ -82,7 +81,7 @@ export default function MainUI({
       console.log('API Key:', import.meta.env.VITE_FAL_KEY ? 'Found' : 'MISSING!');
     
     if (uploadedImages.length === 0 || !thoughts.trim()) {
-      alert('Please provide images and description');
+      alert('Пожалуйста, загрузите изображения и добавьте описание');
       return;
     }
 
@@ -137,7 +136,7 @@ export default function MainUI({
     const imageToProcess = generatedImage || uploadedImages[0];
     
     if (!imageToProcess) {
-      alert('Please upload an image first');
+      alert('Пожалуйста, сначала загрузите изображение');
       return;
     }
 
@@ -188,7 +187,7 @@ export default function MainUI({
   const handleDownload = async () => {
     const imageToDownload = generatedImage || uploadedImages[0];
     if (!imageToDownload) {
-      alert('No image to download');
+      alert('Нет изображения для скачивания');
       return;
     }
 
@@ -204,22 +203,71 @@ export default function MainUI({
       setTimeout(() => URL.revokeObjectURL(a.href), 100);
     } catch (error) {
       console.error('Download failed:', error);
-      alert('Failed to download image. Please try again.');
+      alert('Не удалось скачать изображение. Пожалуйста, попробуйте снова.');
     }
   };
 
   const displayImage = generatedImage || uploadedImages[0];
 
   return (
-    <div 
-      className="h-screen w-screen bg-cover bg-center bg-no-repeat flex overflow-hidden"
-      style={{ 
-        backgroundImage: `url(${backgroundImage})`,
-        width: '133.333333vw',
-        height: '133.333333vh',
-        zoom: '0.75'
-      }}
-    >
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col overflow-hidden">
+      {/* Logo in top left */}
+      <div className="absolute top-6 left-6 z-10">
+        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+          <img src={logoimg} alt="Logo" className="w-full h-full object-cover" />
+        </div>
+      </div>
+
+      {/* History Section at Top */}
+      <div className="w-full bg-white border-b border-gray-200 shadow-sm py-4 px-6 mt-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-800">История генераций</h2>
+            <div className="flex items-center gap-4">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="font-medium">Назад</span>
+                </button>
+              )}
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="text-teal-600 hover:text-teal-700 font-medium"
+              >
+                {isSidebarOpen ? 'Скрыть' : 'Показать'} историю
+              </button>
+            </div>
+          </div>
+          {history.length > 0 && (
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {history.slice(0, 5).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setGeneratedImage(item.imageUrl);
+                    setThoughts(item.prompt);
+                    setSize(item.settings.size);
+                    setSharpness(item.settings.sharpness);
+                    setQuality(item.settings.quality);
+                    setOrientation(item.settings.orientation);
+                    setLighting(item.settings.lighting || 'Studio');
+                    setModel(item.settings.model || 'fal-ai/gemini-25-flash-image/edit');
+                  }}
+                  className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent hover:border-teal-400 transition-all shadow-sm hover:shadow-md"
+                >
+                  <img src={item.imageUrl} alt="History" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+          {history.length === 0 && (
+            <p className="text-gray-500 text-sm">История пуста. Создайте первое изображение!</p>
+          )}
+        </div>
+      </div>
+
       <HistorySidebar
         items={history}
         onSelect={(item) => {
@@ -237,28 +285,11 @@ export default function MainUI({
         onClear={onClearHistory}
       />
 
-      {/* Main Content Area - wrapped to handle sidebar pushing */}
-      <div className="flex-1 flex flex-col relative h-full overflow-y-auto w-full p-6 transition-all duration-300">
-        
-        {/* Logo */}
-        <div className="absolute top-6 left-6 z-10">
-          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
-            <img src={logoimg} alt="Logo" className="w-full h-full object-cover" />
-          </div>
-        </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col relative w-full overflow-y-auto p-6 transition-all duration-300">
 
-        {/* Back Button */}
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="absolute top-6 right-6 bg-white hover:bg-gray-100 text-gray-700 px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 z-10">
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back to Upload</span>
-          </button>
-        )}
-
-        {/* Main Content Components - Adjusted margin to not overlap with logo/header if needed */}
-        <div className="flex-1 flex gap-6 mt-24 max-w-7xl mx-auto w-full">
+        {/* Main Content Components */}
+        <div className="flex-1 flex gap-6 max-w-7xl mx-auto w-full">
           {/* Left Side - Image Display */}
           <div className="flex-1 flex flex-col gap-4">
             {/* Image Container */}
@@ -267,7 +298,7 @@ export default function MainUI({
                 <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-10">
                   <Loader2 className="w-16 h-16 text-white animate-spin mb-4" />
                   <p className="text-white text-xl font-medium">
-                    {isGenerating ? 'Generating your image...' : 'Removing background...'}
+                    {isGenerating ? 'Генерация изображения...' : 'Удаление фона...'}
                   </p>
                 </div>
               )}
@@ -290,7 +321,7 @@ export default function MainUI({
                 </div>
               ) : (
                 <div className="text-gray-400 text-xl">
-                  No images uploaded
+                  Изображения не загружены
                 </div>
               )}
             </div>
@@ -300,7 +331,7 @@ export default function MainUI({
               <textarea
                 value={thoughts}
                 onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setThoughts(e.target.value)}
-                placeholder="Describe what you want to create or enhance..."
+                placeholder="Опишите что вы хотите создать или улучшить..."
                 className="flex-1 bg-white rounded-lg px-6 py-4 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none shadow-md"
                 rows={3}
                 disabled={isGenerating}
@@ -343,7 +374,7 @@ export default function MainUI({
 
             {generatedImage && !error && (
               <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-                ✨ Image generated successfully! You can download it now.
+                ✨ Изображение успешно создано! Теперь вы можете его скачать.
               </div>
             )}
           </div>
@@ -537,11 +568,11 @@ export default function MainUI({
               {isRemovingBg ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Processing...</span>
+                  <span>Обработка...</span>
                 </>
               ) : (
                 <>
-                  <span>Remove Background</span>
+                  <span>Удалить фон</span>
                   <Wallpaper className="w-5 h-5" />
                 </>
               )}
@@ -557,7 +588,7 @@ export default function MainUI({
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              <span>Download</span>
+              <span>Скачать</span>
               <Download className="w-5 h-5" />
             </button>
           </div>

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { Upload, Mic, MicOff } from 'lucide-react';
-import backgroundImage from './assets/bcg.png';
 import logoimg from './assets/Logo.png'
 import HistorySidebar, { type HistoryItem } from './history-sidebar';
 
@@ -100,7 +99,7 @@ export default function PhotoUploadInterface({
 
   const toggleListening = () => {
     if (!recognitionRef.current) {
-      alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+      alert('Распознавание речи не поддерживается в вашем браузере. Пожалуйста, используйте Chrome, Edge или Safari.');
       return;
     }
 
@@ -121,11 +120,11 @@ export default function PhotoUploadInterface({
 
   const handleSubmit = () => {
     if (previewUrls.length === 0) {
-      alert('Please upload at least one image');
+      alert('Пожалуйста, загрузите хотя бы одно изображение');
       return;
     }
     if (!thoughts.trim()) {
-      alert('Please add a description');
+      alert('Пожалуйста, добавьте описание');
       return;
     }
     onSubmit(previewUrls, thoughts);
@@ -168,7 +167,7 @@ export default function PhotoUploadInterface({
       };
       reader.readAsDataURL(file);
     } else {
-      alert('Please upload an image file');
+      alert('Пожалуйста, загрузите файл изображения');
     }
   };
 
@@ -181,15 +180,45 @@ export default function PhotoUploadInterface({
   };
 
   return (
-    <div 
-      className="h-screen w-screen bg-cover bg-center bg-no-repeat flex overflow-hidden"
-      style={{ 
-        backgroundImage: `url(${backgroundImage})`,
-        width: '133.333333vw',
-        height: '133.333333vh',
-        zoom: '0.75'
-      }}
-    >
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col overflow-hidden">
+      {/* Logo in top left */}
+      <div className="absolute top-6 left-6 z-10">
+        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+          <img src={logoimg} alt="Logo" className="w-full h-full object-cover" />
+        </div>
+      </div>
+
+      {/* History Section at Top */}
+      <div className="w-full bg-white border-b border-gray-200 shadow-sm py-4 px-6 mt-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-800">История генераций</h2>
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="text-teal-600 hover:text-teal-700 font-medium"
+            >
+              {isSidebarOpen ? 'Скрыть' : 'Показать'} историю
+            </button>
+          </div>
+          {history.length > 0 && (
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {history.slice(0, 5).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => onHistorySelect(item)}
+                  className="flex-shrink-0 w-24 h-24 bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent hover:border-teal-400 transition-all shadow-sm hover:shadow-md"
+                >
+                  <img src={item.imageUrl} alt="History" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+          {history.length === 0 && (
+            <p className="text-gray-500 text-sm">История пуста. Создайте первое изображение!</p>
+          )}
+        </div>
+      </div>
+
       <HistorySidebar
         items={history}
         onSelect={onHistorySelect}
@@ -198,19 +227,13 @@ export default function PhotoUploadInterface({
         onClear={onClearHistory}
       />
       
-      <div className="flex-1 relative w-full h-full overflow-y-auto">
+      <div className="flex-1 relative w-full overflow-y-auto">
         <div className="min-h-full flex flex-col items-center justify-center p-6 relative">
-          {/* Logo */}
-          <div className="absolute top-6 left-6">
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
-              <img src={logoimg} alt="Logo" className="w-full h-full object-cover" />
-            </div>
-          </div>
 
           {/* Main Container */}
-          <div className="w-full max-w-3xl">
+          <div className="w-full max-w-4xl">
             <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-              Upload the product
+              Загрузите фотографии для редактирования
             </h1>
 
             {/* Upload Area */}
@@ -226,14 +249,14 @@ export default function PhotoUploadInterface({
                 <div className="flex flex-col items-center justify-center">
                   <Upload className="w-16 h-16 mb-6 text-gray-700" strokeWidth={2} />
                   <p className="text-2xl font-medium text-gray-800 mb-4">
-                    Drag and Drop images here
+                    Перетащите изображения сюда
                   </p>
-                  <p className="text-xl text-gray-600 mb-6">or</p>
+                  <p className="text-xl text-gray-600 mb-6">или</p>
                   <button
                     onClick={handleSelectClick}
                     className="bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500 text-white px-12 py-4 rounded-lg text-xl font-medium transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    Select files
+                    Выбрать файлы
                   </button>
                   <input
                     ref={fileInputRef}
@@ -291,7 +314,7 @@ export default function PhotoUploadInterface({
                 <textarea
                   value={thoughts + (interimText ? ' ' + interimText : '')}
                   onChange={(e) => setThoughts(e.target.value)}
-                  placeholder="Describe your thoughts..."
+                  placeholder="Опишите что вы хотите создать..."
                   className="w-full bg-white rounded-lg px-6 py-4 text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"
                   rows={3}
                 />
@@ -320,7 +343,7 @@ export default function PhotoUploadInterface({
             
             {isListening && (
               <p className="text-center mb-4 text-gray-700 text-sm">
-                🎤 Listening... Speak clearly into your microphone
+                🎤 Идет запись... Говорите четко в микрофон
               </p>
             )}
 
@@ -334,7 +357,7 @@ export default function PhotoUploadInterface({
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              Continue to Editor
+              Перейти к редактору
             </button>
           </div>
         </div>
