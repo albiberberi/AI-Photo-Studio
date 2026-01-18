@@ -1,15 +1,15 @@
 import { useState } from 'react'
-import PhotoUploadInterface from './photo-upload-interface'
-import MainUI from './main-ui'
+import LandingPage from './landing-page'
+import EditorPage from './editor-page'
 import type { HistoryItem } from './history-sidebar'
 
+type PageState = 'landing' | 'editor';
+
 function App() {
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [description, setDescription] = useState('');
+  const [currentPage, setCurrentPage] = useState<PageState>('landing');
   
   // History State
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [initialSettings, setInitialSettings] = useState<HistoryItem['settings'] | undefined>(undefined);
 
   const addToHistory = (itemData: Omit<HistoryItem, 'id' | 'timestamp'>) => {
     const newItem: HistoryItem = {
@@ -24,44 +24,20 @@ function App() {
     setHistory([]);
   };
 
-  const handleUploadSubmit = (images: string[], desc: string) => {
-    setUploadedImages(images);
-    setDescription(desc);
-    setInitialSettings(undefined); // Reset settings for new upload
+  const handleLandingNext = () => {
+    setCurrentPage('editor');
   };
 
-  const handleBackToUpload = () => {
-    setUploadedImages([]);
-    setDescription('');
-    setInitialSettings(undefined);
-  };
-
-  const handleHistorySelect = (item: HistoryItem) => {
-    // When selecting from Upload screen, we want to load this item into MainUI
-    setUploadedImages([item.imageUrl]); // Use the generated/history image as the input?
-    setDescription(item.prompt);
-    setInitialSettings(item.settings);
-  };
-
-  if (uploadedImages.length > 0) {
-    return (
-      <MainUI 
-        uploadedImages={uploadedImages} 
-        description={description}
-        onBack={handleBackToUpload}
-        history={history}
-        addToHistory={addToHistory}
-        onClearHistory={onClearHistory}
-        initialSettings={initialSettings}
-      />
-    );
+  // Landing Page
+  if (currentPage === 'landing') {
+    return <LandingPage onNext={handleLandingNext} />;
   }
 
+  // Editor Page (unified page with upload, settings, and generation)
   return (
-    <PhotoUploadInterface 
-      onSubmit={handleUploadSubmit}
+    <EditorPage
       history={history}
-      onHistorySelect={handleHistorySelect}
+      addToHistory={addToHistory}
       onClearHistory={onClearHistory}
     />
   );
