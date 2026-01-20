@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
-import { Upload, Mic, MicOff, ChevronDown, Download, Loader2, X } from 'lucide-react';
+import { Upload, Mic, MicOff, ChevronDown, Download, Loader2, X, ArrowLeft, Plus, Wand2 } from 'lucide-react';
 import { generateProductImage, removeBackground } from './fal-service';
 import logoimg from './assets/Logo.png';
 import type { HistoryItem } from './history-sidebar';
@@ -9,12 +9,15 @@ interface EditorPageProps {
   history: HistoryItem[];
   addToHistory: (item: Omit<HistoryItem, 'id' | 'timestamp'>) => void;
   onClearHistory: () => void;
+  onBack?: () => void;
+  removeFromHistory: (id: string) => void;
 }
 
 export default function EditorPage({
   history,
   addToHistory,
-  onClearHistory
+  onBack,
+  removeFromHistory
 }: EditorPageProps) {
   // Upload state
   const [isDragging, setIsDragging] = useState(false);
@@ -192,6 +195,18 @@ export default function EditorPage({
     setOpenDropdown(openDropdown === dropdown ? null : dropdown);
   };
 
+  const resetEditor = () => {
+    setPreviewUrls([]);
+    setThoughts('');
+    setGeneratedImage(null);
+    setError(null);
+    setAspectRatio('landscape_4_3');
+    setResolution('High');
+    setSharpness('Normal');
+    setLighting('Studio');
+    setModel('fal-ai/gemini-25-flash-image/edit');
+  };
+
   const handleGenerate = async () => {
     if (previewUrls.length === 0 || !thoughts.trim()) {
       alert('Please provide images and description');
@@ -238,8 +253,8 @@ export default function EditorPage({
     }
   };
 
-  const removeBg = async () => {
-    const imageToProcess = generatedImage || previewUrls[0];
+  const removeBg = async (targetUrl?: string) => {
+    const imageToProcess = targetUrl || generatedImage || previewUrls[0];
     
     if (!imageToProcess) {
       alert('Please upload an image first');
@@ -289,8 +304,8 @@ export default function EditorPage({
     }
   };
 
-  const handleDownload = async () => {
-    const imageToDownload = generatedImage || previewUrls[0];
+  const handleDownload = async (targetUrl?: string) => {
+    const imageToDownload = targetUrl || generatedImage || previewUrls[0];
     if (!imageToDownload) {
       alert('No image to download');
       return;
@@ -310,20 +325,45 @@ export default function EditorPage({
     }
   };
 
-  const displayImage = generatedImage || previewUrls[0];
+
 
   return (
     <div className="min-h-screen w-full bg-white flex flex-col overflow-hidden">
       {/* Logo in top left */}
       <div className="absolute top-4 left-4 z-20">
-        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm overflow-hidden">
+        <div className="w-16 h-16 bg-white flex items-center justify-center shadow-sm overflow-hidden">
           <img src={logoimg} alt="Logo" className="w-full h-full object-cover" />
         </div>
       </div>
 
+      {/* Back Button in top right */}
+      {onBack && (
+        <div className="absolute top-4 right-4 z-20">
+          <button 
+            onClick={onBack}
+            className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:bg-gray-50 text-gray-700"
+            title="Go Back"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-1 overflow-hidden pt-20">
         {/* Left Sidebar - Compact Panel */}
         <div className="w-80 border-r border-gray-200 flex flex-col overflow-y-auto bg-gray-50">
+          
+          {/* New Chat Button */}
+          <div className="p-4 pb-0">
+            <button
+              onClick={resetEditor}
+              className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-4 py-3 rounded-lg shadow-sm hover:shadow-md transition-all font-medium text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Chat</span>
+            </button>
+          </div>
+
           {/* Upload Section */}
           <div className="p-4 border-b border-gray-200">
             <div
@@ -601,22 +641,33 @@ export default function EditorPage({
               <div className="flex items-center gap-2 overflow-x-auto">
                 <span className="text-xs text-gray-500 whitespace-nowrap">Recent:</span>
                 {history.slice(0, 8).map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setPreviewUrls([item.imageUrl]);
-                      setThoughts(item.prompt);
-                      setAspectRatio(item.settings.size.includes('portrait') ? 'portrait_4_3' : item.settings.size.includes('square') ? 'square' : 'landscape_4_3');
-                      setResolution(item.settings.quality);
-                      setSharpness(item.settings.sharpness);
-                      setLighting(item.settings.lighting || 'Studio');
-                      setModel(item.settings.model || 'fal-ai/gemini-25-flash-image/edit');
-                      setGeneratedImage(item.imageUrl);
-                    }}
-                    className="flex-shrink-0 w-12 h-12 rounded border border-gray-200 overflow-hidden hover:border-teal-400 transition-all"
-                  >
-                    <img src={item.imageUrl} alt="History" className="w-full h-full object-cover" />
-                  </button>
+                  <div key={item.id} className="relative group flex-shrink-0">
+                    <button
+                      onClick={() => {
+                        setPreviewUrls([item.imageUrl]);
+                        setThoughts(item.prompt);
+                        setAspectRatio(item.settings.size.includes('portrait') ? 'portrait_4_3' : item.settings.size.includes('square') ? 'square' : 'landscape_4_3');
+                        setResolution(item.settings.quality);
+                        setSharpness(item.settings.sharpness);
+                        setLighting(item.settings.lighting || 'Studio');
+                        setModel(item.settings.model || 'fal-ai/gemini-25-flash-image/edit');
+                        setGeneratedImage(item.imageUrl);
+                      }}
+                      className="w-12 h-12 rounded border border-gray-200 overflow-hidden hover:border-teal-400 transition-all block"
+                    >
+                      <img src={item.imageUrl} alt="History" className="w-full h-full object-cover" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFromHistory(item.id);
+                      }}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
+                      title="Remove from history"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -633,23 +684,74 @@ export default function EditorPage({
               </div>
             )}
             
-            {displayImage ? (
+            {generatedImage ? (
               <div className="relative max-w-full max-h-full">
                 <img 
-                  src={displayImage} 
+                  src={generatedImage} 
                   alt="Generated" 
                   className="max-w-full max-h-[calc(100vh-200px)] object-contain rounded-lg shadow-lg"
                 />
-                {/* Download button on image */}
-                {generatedImage && (
+                {/* Action buttons on generated image */}
+                <div className="absolute top-4 right-4 flex flex-col gap-2">
                   <button
-                    onClick={handleDownload}
-                    className="absolute top-4 right-4 bg-white/90 hover:bg-white border border-gray-200 rounded-lg p-2 shadow-lg hover:shadow-xl transition-all"
+                    onClick={() => handleDownload(generatedImage)}
+                    className="bg-white/90 hover:bg-white border border-gray-200 rounded-lg p-2 shadow-lg hover:shadow-xl transition-all"
                     title="Download"
                   >
                     <Download className="w-5 h-5 text-gray-700" />
                   </button>
-                )}
+                  {!isRemovingBg && (
+                    <button
+                      onClick={() => removeBg(generatedImage)}
+                      className="bg-white/90 hover:bg-white border border-gray-200 rounded-lg p-2 shadow-lg hover:shadow-xl transition-all"
+                      title="Remove Background"
+                    >
+                      <Wand2 className="w-5 h-5 text-gray-700" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : previewUrls.length > 0 ? (
+              <div className="w-full max-w-6xl h-full overflow-y-auto p-4">
+                <div className={`grid gap-6 ${
+                  previewUrls.length === 1 ? 'grid-cols-1 place-items-center' : 
+                  previewUrls.length === 2 ? 'grid-cols-2' :
+                  'grid-cols-2 md:grid-cols-3 lg:grid-cols-3'
+                }`}>
+                  {previewUrls.map((url, idx) => (
+                    <div key={idx} className={`relative group bg-white rounded-xl shadow-md overflow-hidden ${
+                      previewUrls.length === 1 ? 'max-w-2xl w-full' : 'w-full aspect-[4/3]'
+                    }`}>
+                      <img 
+                        src={url} 
+                        alt={`Input ${idx + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Number Badge */}
+                      <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center font-bold text-sm border border-white/20 shadow-lg">
+                        {idx + 1}
+                      </div>
+
+                      {/* Action Overlay */}
+                      <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleDownload(url)}
+                          className="bg-white/90 hover:bg-white p-2 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                          title="Download"
+                        >
+                          <Download className="w-4 h-4 text-gray-700" />
+                        </button>
+                        <button
+                          onClick={() => removeBg(url)}
+                          className="bg-white/90 hover:bg-white p-2 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                          title="Remove Background"
+                        >
+                          <Wand2 className="w-4 h-4 text-gray-700" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="text-center text-gray-400">
