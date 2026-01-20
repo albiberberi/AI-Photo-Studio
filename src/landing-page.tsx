@@ -1,4 +1,3 @@
-import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import logoimg from './assets/Logo.png';
 
@@ -11,7 +10,7 @@ export default function LandingPage({ onNext }: LandingPageProps) {
     <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
       {/* Logo in top left */}
       <div className="absolute top-6 left-6 z-10">
-        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+        <div className="w-16 h-16 bg-white flex items-center justify-center shadow-lg overflow-hidden">
           <img src={logoimg} alt="Logo" className="w-full h-full object-cover" />
         </div>
       </div>
@@ -36,8 +35,7 @@ export default function LandingPage({ onNext }: LandingPageProps) {
             <div className="text-white text-2xl font-medium">
               🎨 Interactive Demo
             </div>
-            {/* If you have a GIF file, uncomment the next line: */}
-            {/* <img src="/path-to-your-gif.gif" alt="Demo" className="w-full h-full object-cover" /> */}
+
           </div>
         </div>
 
