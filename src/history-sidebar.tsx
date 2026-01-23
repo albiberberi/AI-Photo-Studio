@@ -1,3 +1,4 @@
+import React from 'react';
 import { Clock, ChevronLeft, ChevronRight, Image as ImageIcon, Trash2 } from 'lucide-react';
 
 export interface HistoryItem {
