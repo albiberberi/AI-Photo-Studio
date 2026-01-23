@@ -1,4 +1,3 @@
-import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import logoimg from './assets/Logo.png';
@@ -59,19 +58,21 @@ export default function LandingPage({ onNext }: LandingPageProps) {
                 top: '25px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                width: '333px'
+                width: '600px'
             }}
         >
             <h1
-                className="font-normal text-black"
                 style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '48px',
-                    lineHeight: '58px',
-                    height: '58px'
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '52px',
+                  lineHeight: '60px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  margin: 0,
+                
                 }}
             >
-                AI Photostudio
+                AI Photo Studio
             </h1>
         </div>
 
@@ -138,36 +139,35 @@ export default function LandingPage({ onNext }: LandingPageProps) {
 
         {/* Navigation Button */}
         <button
-            onClick={onNext}
-            className="
-                absolute
-                group
-                font-medium
-                text-[#F5F5F5]
-                flex items-center justify-center gap-3
-                transition-all duration-200 ease-out
-                hover:bg-[#3E3632]
-                hover:shadow-lg
-                hover:-translate-y-[1px]
-                active:translate-y-0
-            "
-            style={{
-                width: '200px',
-                height: '50px',
-                left: '50%',
-                top: '725px',
-                transform: 'translateX(-50%)',
-                background: '#4A413C',
-                borderRadius: '15px',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '20px',
-                lineHeight: '24px'
-            }}
+        onClick={onNext}
+        className="
+            absolute
+            font-medium
+            text-[#F5F5F5]
+            flex items-center justify-center
+            transition-all duration-200 ease-out
+            hover:shadow-lg
+            hover:-translate-y-[1px]
+            active:translate-y-0
+        "
+        style={{
+            width: '220px',
+            height: '54px',
+            left: '50%',
+            top: '725px',
+            transform: 'translateX(-50%)',
+
+            background: '#4A413C', // глубокий коричневый
+            borderRadius: '9999px',
+
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '18px',
+            lineHeight: '22px',
+            fontWeight: 500,
+        }}
         >
-            <span>Get started</span>
-            <ArrowRight className="w-5 h-5 text-[#F5F5F5] transition-transform duration-200 group-hover:translate-x-1" />
+        Get started
         </button>
       </div>
   );
 }
-
