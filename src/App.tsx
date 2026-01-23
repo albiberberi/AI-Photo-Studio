@@ -39,6 +39,8 @@ function App() {
       history={history}
       addToHistory={addToHistory}
       onClearHistory={onClearHistory}
+      onBack={() => setCurrentPage('landing')}
+      removeFromHistory={(id) => setHistory(prev => prev.filter(item => item.id !== id))}
     />
   );
 }

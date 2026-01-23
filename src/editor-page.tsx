@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
-import { Upload, Mic, MicOff, ChevronDown, Download, Loader2, X } from 'lucide-react';
+import { Upload, Mic, MicOff, ChevronDown, Download, Loader2, X, ArrowLeft, Wand2, Plus } from 'lucide-react';
 import { generateProductImage, removeBackground } from './fal-service';
 import logoimg from './assets/Logo.png';
 import type { HistoryItem } from './history-sidebar';
@@ -9,12 +9,15 @@ interface EditorPageProps {
   history: HistoryItem[];
   addToHistory: (item: Omit<HistoryItem, 'id' | 'timestamp'>) => void;
   onClearHistory: () => void;
+  onBack?: () => void;
+  removeFromHistory: (id: string) => void;
 }
 
 export default function EditorPage({
   history,
   addToHistory,
-  onClearHistory
+  onBack,
+  removeFromHistory,
 }: EditorPageProps) {
   // Upload state
   const [isDragging, setIsDragging] = useState(false);
@@ -253,6 +256,18 @@ export default function EditorPage({
     setOpenDropdown(openDropdown === dropdown ? null : dropdown);
   };
 
+  const resetEditor = () => {
+    setPreviewUrls([]);
+    setThoughts('');
+    setGeneratedImage(null);
+    setError(null);
+    setAspectRatio('landscape_4_3');
+    setResolution('High');
+    setSharpness('Normal');
+    setLighting('Studio');
+    setModel('fal-ai/gemini-25-flash-image/edit');
+  };
+
   const handleGenerate = async () => {
     if (previewUrls.length === 0 || !thoughts.trim()) {
       alert('Please provide images and description');
@@ -299,8 +314,8 @@ export default function EditorPage({
     }
   };
 
-  const removeBg = async () => {
-    const imageToProcess = generatedImage || previewUrls[0];
+  const removeBg = async (targetUrl?: string) => {
+    const imageToProcess = targetUrl || generatedImage || previewUrls[0];
     
     if (!imageToProcess) {
       alert('Please upload an image first');
@@ -350,8 +365,8 @@ export default function EditorPage({
     }
   };
 
-  const handleDownload = async () => {
-    const imageToDownload = generatedImage || previewUrls[0];
+  const handleDownload = async (targetUrl?: string) => {
+    const imageToDownload = targetUrl || generatedImage || previewUrls[0];
     if (!imageToDownload) {
       alert('No image to download');
       return;
@@ -371,7 +386,6 @@ export default function EditorPage({
     }
   };
 
-  const displayImage = generatedImage || previewUrls[0];
 
   return (
     <div className="min-h-screen w-full bg-white flex flex-col overflow-hidden">
@@ -382,14 +396,39 @@ export default function EditorPage({
         </div>
       </div>
 
+      {/* Back Button in top right */}
+      {onBack && (
+        <div className="absolute top-4 right-4 z-20">
+          <button 
+            onClick={onBack}
+            className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:bg-gray-50 text-gray-700"
+            title="Go Back"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-1 overflow-hidden pt-20">
         {/* Left Sidebar - Compact Panel */}
         <div className="w-80 border-r border-gray-200 flex flex-col overflow-y-auto bg-gray-50">
+
+          {/* New Chat Button */}
+          <div className="p-4 pb-0">
+            <button
+              onClick={resetEditor}
+              className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 px-4 py-3 rounded-lg shadow-sm hover:shadow-md transition-all font-medium text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Chat</span>
+            </button>
+          </div>
+
           {/* Upload Section */}
           <div className="p-4 border-b border-gray-200">
             <div
               className={`bg-white rounded-lg border-2 border-dashed transition-all duration-200 ${
-                isDragging ? 'border-teal-500 bg-teal-50' : 'border-gray-300'
+                isDragging ? 'border-orange-500 bg-orange-50' : 'border-gray-300'
               } p-4`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -403,7 +442,7 @@ export default function EditorPage({
                   </p>
                   <button
                     onClick={handleSelectClick}
-                    className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                    className="text-sm text-orange-600 hover:text-orange-700 font-medium"
                   >
                     or select files
                   </button>
@@ -435,7 +474,7 @@ export default function EditorPage({
                   ))}
                   <button
                     onClick={handleSelectClick}
-                    className="w-full border-2 border-dashed border-gray-300 rounded-lg py-2 text-xs text-gray-500 hover:border-teal-500 hover:text-teal-500 transition-colors"
+                    className="w-full border-2 border-dashed border-gray-300 rounded-lg py-2 text-xs text-gray-500 hover:border-orange-500 hover:text-orange-500 transition-colors"
                   >
                     + Add more
                   </button>
@@ -462,7 +501,7 @@ export default function EditorPage({
                 onFocus={() => setShowSuggestions(autocompleteSuggestions.length > 0)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 placeholder="Describe your interior design... (e.g., 'a modern minimalist living room with natural light')"
-                className="w-full bg-white rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-teal-400 resize-none border border-gray-300"
+                className="w-full bg-white rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-orange-950 resize-none border border-gray-300"
                 rows={4}
                 disabled={isGenerating}
               />
@@ -480,7 +519,7 @@ export default function EditorPage({
                       key={index}
                       type="button"
                       onClick={() => applySuggestion(suggestion)}
-                      className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-teal-50 transition-colors"
+                      className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-orange-100 hover:text-orange-950 transition-colors"
                     >
                       {suggestion}
                     </button>
@@ -513,7 +552,7 @@ export default function EditorPage({
                     key={index}
                     type="button"
                     onClick={() => addTagToPrompt(tag)}
-                    className="px-2 py-1 text-xs bg-gray-100 hover:bg-teal-100 text-gray-600 hover:text-teal-700 rounded-md transition-colors border border-gray-200 hover:border-teal-300"
+                    className="px-2 py-1 text-xs bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-orange-950 rounded-md transition-colors border border-gray-200 hover:border-orange-950"
                     title={`Add "${tag}" to prompt`}
                   >
                     + {tag}
@@ -541,7 +580,7 @@ export default function EditorPage({
                     onClick={() => setAspectRatio(option.value)}
                     className={`px-3 py-2 text-xs rounded-lg border transition-all ${
                       aspectRatio === option.value
-                        ? 'bg-teal-50 border-teal-500 text-teal-700 font-medium'
+                        ? 'bg-orange-50 border-orange-500 text-orange-700 font-medium'
                         : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
                     }`}
                   >
@@ -561,7 +600,7 @@ export default function EditorPage({
                     onClick={() => setResolution(option)}
                     className={`px-3 py-2 text-xs rounded-lg border transition-all ${
                       resolution === option
-                        ? 'bg-teal-50 border-teal-500 text-teal-700 font-medium'
+                        ? 'bg-orange-50 border-orange-500 text-orange-700 font-medium'
                         : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
                     }`}
                   >
@@ -592,7 +631,7 @@ export default function EditorPage({
                           setOpenDropdown(null);
                         }}
                         className={`w-full px-3 py-2 text-xs text-left hover:bg-gray-50 transition-colors ${
-                          sharpness === option ? 'bg-teal-50 text-teal-700 font-medium' : 'text-gray-700'
+                          sharpness === option ? 'bg-orange-50 text-orange-700 font-medium' : 'text-gray-700'
                         }`}
                       >
                         {option}
@@ -624,7 +663,7 @@ export default function EditorPage({
                           setOpenDropdown(null);
                         }}
                         className={`w-full px-3 py-2 text-xs text-left hover:bg-gray-50 transition-colors ${
-                          lighting === option ? 'bg-teal-50 text-teal-700 font-medium' : 'text-gray-700'
+                          lighting === option ? 'bg-orange-50 text-orange-700 font-medium' : 'text-gray-700'
                         }`}
                       >
                         {option}
@@ -656,7 +695,7 @@ export default function EditorPage({
                           setOpenDropdown(null);
                         }}
                         className={`w-full px-3 py-2 text-xs text-left hover:bg-gray-50 transition-colors ${
-                          model === option.value ? 'bg-teal-50 text-teal-700 font-medium' : 'text-gray-700'
+                          model === option.value ? 'bg-orange-50 text-orange-700 font-medium' : 'text-gray-700'
                         }`}
                       >
                         {option.label}
@@ -714,7 +753,7 @@ export default function EditorPage({
                 <div className="px-6 pb-4">
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {history.slice(0, 10).map((item) => (
-                      <div key={item.id} className="relative group bg-white rounded-lg border border-gray-200 p-3 hover:border-teal-300 transition-all cursor-pointer shadow-sm hover:shadow-md">
+                      <div key={item.id} className="relative group bg-white rounded-lg border border-gray-200 p-3 hover:border-orange-300 transition-all cursor-pointer shadow-sm hover:shadow-md">
                         <div className="flex items-start gap-3">
                           {/* Generated Image */}
                           <div className="flex-shrink-0">
@@ -729,7 +768,7 @@ export default function EditorPage({
                                 setModel(item.settings.model || 'fal-ai/gemini-25-flash-image/edit');
                                 setGeneratedImage(item.imageUrl);
                               }}
-                              className="w-20 h-20 rounded-lg border border-gray-200 overflow-hidden hover:border-teal-400 transition-all block"
+                              className="w-20 h-20 rounded-lg border border-gray-200 overflow-hidden hover:border-orange-400 transition-all block"
                             >
                               <img src={item.imageUrl} alt="Generated" className="w-full h-full object-cover" />
                             </button>
@@ -788,23 +827,75 @@ export default function EditorPage({
               </div>
             )}
             
-            {displayImage ? (
+            {generatedImage ? (
               <div className="relative max-w-full max-h-full">
                 <img 
-                  src={displayImage} 
+                  src={generatedImage} 
                   alt="Generated" 
                   className="max-w-full max-h-[calc(100vh-200px)] object-contain rounded-lg shadow-lg"
                 />
-                {/* Download button on image */}
-                {generatedImage && (
+                {/* Action buttons on generated image */}
+                <div className="absolute top-4 right-4 flex flex-col gap-2">
                   <button
-                    onClick={handleDownload}
-                    className="absolute top-4 right-4 bg-white/90 hover:bg-white border border-gray-200 rounded-lg p-2 shadow-lg hover:shadow-xl transition-all"
+                    onClick={() => handleDownload(generatedImage)}
+                    className="bg-white/90 hover:bg-white border border-gray-200 rounded-lg p-2 shadow-lg hover:shadow-xl transition-all"
                     title="Download"
                   >
                     <Download className="w-5 h-5 text-gray-700" />
                   </button>
-                )}
+                  {!isRemovingBg && (
+                    <button
+                      onClick={() => removeBg(generatedImage)}
+                      className="bg-white/90 hover:bg-white border border-gray-200 rounded-lg p-2 shadow-lg hover:shadow-xl transition-all"
+                      title="Remove Background"
+                    >
+                      <Wand2 className="w-5 h-5 text-gray-700" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+            ) :  previewUrls.length > 0 ? (
+              <div className="w-full max-w-6xl h-full overflow-y-auto p-4">
+                <div className={`grid gap-6 ${
+                  previewUrls.length === 1 ? 'grid-cols-1 place-items-center' : 
+                  previewUrls.length === 2 ? 'grid-cols-2' :
+                  'grid-cols-2 md:grid-cols-3 lg:grid-cols-3'
+                }`}>
+                  {previewUrls.map((url, idx) => (
+                    <div key={idx} className={`relative group bg-white rounded-xl shadow-md overflow-hidden ${
+                      previewUrls.length === 1 ? 'max-w-2xl w-full' : 'w-full aspect-[4/3]'
+                    }`}>
+                      <img 
+                        src={url} 
+                        alt={`Input ${idx + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Number Badge */}
+                      <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center font-bold text-sm border border-white/20 shadow-lg">
+                        {idx + 1}
+                      </div>
+
+                      {/* Action Overlay */}
+                      <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleDownload(url)}
+                          className="bg-white/90 hover:bg-white p-2 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                          title="Download"
+                        >
+                          <Download className="w-4 h-4 text-gray-700" />
+                        </button>
+                        <button
+                          onClick={() => removeBg(url)}
+                          className="bg-white/90 hover:bg-white p-2 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                          title="Remove Background"
+                        >
+                          <Wand2 className="w-4 h-4 text-gray-700" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="text-center text-gray-400">
