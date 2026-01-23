@@ -45,6 +45,7 @@ export default function EditorPage({
   const [isRemovingBg, setIsRemovingBg] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
 
   const aspectRatioOptions = [
     { label: 'Square', value: 'square' },
@@ -733,40 +734,86 @@ export default function EditorPage({
         {/* Right Side - Image Display */}
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
           {/* History - Subtle, above image */}
+          {/* History - Collapsible dropdown */}
           {history.length > 0 && (
-            <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/50">
-              <div className="flex items-center gap-2 overflow-x-auto">
-                <span className="text-xs text-gray-500 whitespace-nowrap">Recent:</span>
-                {history.slice(0, 8).map((item) => (
-                  <div key={item.id} className="relative group flex-shrink-0">
-                    <button
-                      onClick={() => {
-                        setPreviewUrls([item.imageUrl]);
-                        setThoughts(item.prompt);
-                        setAspectRatio(item.settings.size.includes('portrait') ? 'portrait_4_3' : item.settings.size.includes('square') ? 'square' : 'landscape_4_3');
-                        setResolution(item.settings.quality);
-                        setSharpness(item.settings.sharpness);
-                        setLighting(item.settings.lighting || 'Studio');
-                        setModel(item.settings.model || 'fal-ai/gemini-25-flash-image/edit');
-                        setGeneratedImage(item.imageUrl);
-                      }}
-                      className="w-12 h-12 rounded border border-gray-200 overflow-hidden hover:border-teal-400 transition-all block"
-                    >
-                      <img src={item.imageUrl} alt="History" className="w-full h-full object-cover" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeFromHistory(item.id);
-                      }}
-                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
-                      title="Remove from history"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+            <div className="border-b border-gray-100 bg-gray-50/30">
+              <button
+                onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-100/50 transition-colors"
+              >
+                <span className="text-sm font-medium text-gray-700">Generation History</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                    {history.length}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isHistoryExpanded ? 'rotate-180' : ''}`} />
+                </div>
+              </button>
+
+              {isHistoryExpanded && (
+                <div className="px-6 pb-4">
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {history.slice(0, 10).map((item) => (
+                      <div key={item.id} className="relative group bg-white rounded-lg border border-gray-200 p-3 hover:border-teal-300 transition-all cursor-pointer shadow-sm hover:shadow-md">
+                        <div className="flex items-start gap-3">
+                          {/* Generated Image */}
+                          <div className="flex-shrink-0">
+                            <button
+                              onClick={() => {
+                                setPreviewUrls([item.imageUrl]);
+                                setThoughts(item.prompt);
+                                setAspectRatio(item.settings.size.includes('portrait') ? 'portrait_4_3' : item.settings.size.includes('square') ? 'square' : 'landscape_4_3');
+                                setResolution(item.settings.quality);
+                                setSharpness(item.settings.sharpness);
+                                setLighting(item.settings.lighting || 'Studio');
+                                setModel(item.settings.model || 'fal-ai/gemini-25-flash-image/edit');
+                                setGeneratedImage(item.imageUrl);
+                              }}
+                              className="w-20 h-20 rounded-lg border border-gray-200 overflow-hidden hover:border-teal-400 transition-all block"
+                            >
+                              <img src={item.imageUrl} alt="Generated" className="w-full h-full object-cover" />
+                            </button>
+                          </div>
+
+                          {/* Prompt and Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-800 leading-relaxed mb-2" title={item.prompt}>
+                                  {item.prompt}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                  <span className="px-2 py-1 bg-gray-100 rounded text-xs">
+                                    {item.settings.quality} • {item.settings.orientation}
+                                  </span>
+                                  <span className="px-2 py-1 bg-gray-100 rounded text-xs">
+                                    {item.settings.model?.split('/').pop() || 'Model'}
+                                  </span>
+                                  <span className="text-xs opacity-75">
+                                    {new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Delete button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeFromHistory(item.id);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-1 hover:bg-red-50 rounded"
+                                title="Delete from history"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
