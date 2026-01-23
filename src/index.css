@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.slider-glow {
+    padding: 8px;
+    border-radius: 18px;
+
+    background:
+            radial-gradient(
+                    circle at center,
+                    rgba(0, 0, 0, 0.08) 0%,
+                    rgba(0, 0, 0, 0.04) 55%,
+                    rgba(0, 0, 0, 0.02) 70%,
+                    transparent 100%
+            );
+}
+
+.beer-slider[data-beer-label] .beer-reveal::after {
+    background: rgba(74, 65, 60, 0.65);
+    color: #ffffff;
+    padding: 10px 10px;
+    border-radius: 3px;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+    backdrop-filter: blur(4px);
+}
+
+
