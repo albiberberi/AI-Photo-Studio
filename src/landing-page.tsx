@@ -1,4 +1,3 @@
-import { ArrowRight } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import logoimg from './assets/Logo.png';
 import beforeImage from './assets/before.png';
